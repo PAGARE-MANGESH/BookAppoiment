@@ -1,0 +1,11 @@
+# Root ignore file
+# We are ignoring zips and OS artifacts at the root level to keep the repo clean.
+*.zip
+.DS_Store
+Thumbs.db
+
+# Large folders (just in case they exist at root)
+node_modules/
+venv/
+.venv/
+.next/
