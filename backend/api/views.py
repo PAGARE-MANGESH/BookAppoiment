@@ -1,5 +1,6 @@
 import random
 from django.db import models
+from django.db.models import Q
 from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -440,7 +441,7 @@ class OTPViewSet(viewsets.ViewSet):
                 user = User.objects.create_user(
                     username=mobile, 
                     first_name=name,
-                    password=password if password else User.objects.make_random_password()
+                    password=password if password else str(random.randint(10000000, 99999999))
                 )
                 profile, _ = UserProfile.objects.get_or_create(user=user, defaults={'mobile': mobile})
             elif not profile:
@@ -479,7 +480,7 @@ class UnifiedLoginView(TokenObtainPairView):
             return Response({'error': 'Credentials required'}, status=status.HTTP_400_BAD_REQUEST)
         
         # Search by username, email, or mobile in profile
-        user = User.objects.filter(models.Q(username=identifier) | models.Q(email=identifier)).first()
+        user = User.objects.filter(Q(username=identifier) | Q(email=identifier)).first()
         if not user:
             profile = UserProfile.objects.filter(mobile=identifier).first()
             if profile:

@@ -21,6 +21,10 @@
   --header-height: 80px;
 }
 
+.bg-primary-gradient {
+  background: var(--primary-gradient) !important;
+}
+
 body {
   background-color: var(--bg-main);
   background-image:
