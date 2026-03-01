@@ -6,7 +6,6 @@ from django.http import HttpResponse
 
 def home(request):
     return HttpResponse("Backend is Live 🚀")
-
 urlpatterns = [
     path('', home),
     path('admin/', admin.site.urls),
