@@ -3,4 +3,8 @@ djangorestframework
 django-cors-headers
 djangorestframework-simplejwt
 mysqlclient
+pymysql
+dj-database-url
+psycopg2-binary
+whitenoise
 gunicorn

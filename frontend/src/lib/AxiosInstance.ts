@@ -1,9 +1,19 @@
 import axios from 'axios';
 
+const getBaseURL = () => {
+    if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
+    if (typeof window !== 'undefined') {
+        // If on live but env is missing, try to infer or at least log
+        if (!window.location.hostname.includes('localhost')) {
+            console.warn("NEXT_PUBLIC_API_URL is missing in production!");
+        }
+    }
+    return 'http://127.0.0.1:8000/api/';
+};
+
 const AxiosInstance = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/',
-    // baseURL: 'https://bookappoiment.onrender.com/api/',
-    timeout: 10000,
+    baseURL: getBaseURL(),
+    timeout: 15000,
     headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',

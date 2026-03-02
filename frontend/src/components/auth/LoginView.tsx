@@ -73,7 +73,10 @@ export default function LoginView({
         if (role === "doctor" && authTab === "signup") {
             AxiosInstance.get("specializations/")
                 .then(res => setSpecializations(res.data))
-                .catch(() => { });
+                .catch((err) => {
+                    console.error("Failed to load specializations:", err);
+                    showError("Could not load categories. Backend might be offline.");
+                });
         }
     }, [role, authTab]);
 
@@ -255,7 +258,13 @@ export default function LoginView({
                                     className="position-absolute w-100 bg-white rounded-4 shadow-premium border overflow-auto"
                                     style={{ zIndex: 9999, top: "calc(100% + 8px)", maxHeight: "200px" }}>
                                     {specializations.length === 0 ? (
-                                        <div className="p-4 text-center text-muted small">Loading specializations...</div>
+                                        <div className="p-4 text-center">
+                                            <p className="text-muted small mb-2">No categories found.</p>
+                                            <button type="button" onClick={() => window.location.reload()}
+                                                className="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                                Retry Connection
+                                            </button>
+                                        </div>
                                     ) : (
                                         specializations.map(spec => (
                                             <button key={spec.id} type="button"
