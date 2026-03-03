@@ -1,19 +1,9 @@
 import axios from 'axios';
 
-const getBaseURL = () => {
-    if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
-    if (typeof window !== 'undefined') {
-        // If on live but env is missing, try to infer or at least log
-        if (!window.location.hostname.includes('localhost')) {
-            console.warn("NEXT_PUBLIC_API_URL is missing in production!");
-        }
-    }
-    return 'http://127.0.0.1:8000/api/';
-};
-
 const AxiosInstance = axios.create({
-    baseURL: getBaseURL(),
-    timeout: 15000,
+    baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://bookappoiment.onrender.com/api/',
+    // baseURL: 'https://bookappoiment.onrender.com/api/',
+    timeout: 10000,
     headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
@@ -46,7 +36,7 @@ AxiosInstance.interceptors.response.use(
                 const refreshToken = localStorage.getItem('refresh_token');
                 if (!refreshToken) throw new Error("No refresh token");
 
-                const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/'}token/refresh/`, {
+                const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'https://bookappoiment.onrender.com/api/'}token/refresh/`, {
                     refresh: refreshToken,
                 });
 

@@ -73,6 +73,30 @@ class DoctorViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = DoctorSerializer
     permission_classes = [permissions.AllowAny]
 
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        date_str = request.query_params.get('date')
+        
+        serializer = self.get_serializer(instance)
+        data = serializer.data
+        
+        if date_str:
+            # Get IDs of slots already booked for this doctor on this specific date
+            booked_slot_ids = Appointment.objects.filter(
+                doctor=instance,
+                appointment_date=date_str,
+                status__in=['Upcoming', 'Accepted', 'Booked']
+            ).values_list('slot_id', flat=True)
+            
+            # Update the slots in the serialized data to reflect actual availability for THIS date
+            for slot in data.get('slots', []):
+                if slot['id'] in booked_slot_ids:
+                    slot['is_booked'] = True
+                else:
+                    slot['is_booked'] = False
+                    
+        return Response(data)
+
 class AppointmentViewSet(viewsets.ModelViewSet):
     serializer_class = AppointmentSerializer
     
@@ -264,7 +288,7 @@ class DoctorProfileView(viewsets.ViewSet):
             return Response({'error': 'Not a doctor account.'}, status=status.HTTP_403_FORBIDDEN)
 
         doctor = profile.doctor
-        updatable = ['experience', 'about', 'availability_time', 'location', 'image_url', 'name']
+        updatable = ['experience', 'about', 'availability_time', 'location', 'image_url', 'name', 'is_available']
         for field in updatable:
             val = request.data.get(field)
             if val is not None:
@@ -329,16 +353,7 @@ class DoctorAppointmentView(viewsets.ViewSet):
             try:
                 from .models import Slot
                 new_slot = Slot.objects.get(id=new_slot_id, doctor=profile.doctor)
-                
-                # If changing slots, free the old one and book the new one
-                if appointment.slot != new_slot:
-                    old_slot = appointment.slot
-                    old_slot.is_booked = False
-                    old_slot.save()
-                    
-                    new_slot.is_booked = True
-                    new_slot.save()
-                    appointment.slot = new_slot
+                appointment.slot = new_slot
             except Slot.DoesNotExist:
                 return Response({'error': 'Invalid slot.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -380,9 +395,17 @@ class DoctorSlotViewSet(viewsets.ModelViewSet):
         return Slot.objects.filter(doctor=profile.doctor)
 
     def perform_create(self, serializer):
+        from rest_framework.exceptions import PermissionDenied, ValidationError
         profile = getattr(self.request.user, 'profile', None)
         if not profile or not profile.is_doctor or not profile.doctor:
-            raise permissions.exceptions.PermissionDenied("Only doctors can create slots.")
+            raise PermissionDenied("Only doctors can create slots.")
+        
+        # Check for duplicate
+        time = serializer.validated_data.get('time')
+        shift = serializer.validated_data.get('shift')
+        if Slot.objects.filter(doctor=profile.doctor, time=time, shift=shift).exists():
+            raise ValidationError({"error": f"Slot for {time} ({shift}) already exists."})
+
         serializer.save(doctor=profile.doctor)
         
     @action(detail=False, methods=['post'])
@@ -397,8 +420,10 @@ class DoctorSlotViewSet(viewsets.ModelViewSet):
             time = s.get('time')
             shift = s.get('shift', 'Morning')
             if time:
-                slot = Slot.objects.create(doctor=profile.doctor, time=time, shift=shift)
-                created_slots.append(SlotSerializer(slot).data)
+                # Check for duplicate before creating
+                if not Slot.objects.filter(doctor=profile.doctor, time=time, shift=shift).exists():
+                    slot = Slot.objects.create(doctor=profile.doctor, time=time, shift=shift)
+                    created_slots.append(SlotSerializer(slot).data)
         
         return Response(created_slots, status=status.HTTP_201_CREATED)
 
@@ -516,6 +541,8 @@ class ProfileView(viewsets.ViewSet):
             'email': user.email or f"{user.username.lower()}@healthsync.io",
             'mobile': profile.mobile or "Not Configured",
             'location': profile.location or 'New Delhi, Sector 24, IN',
+            'age': profile.age,
+            'gender': profile.gender,
             'profile_photo': profile.profile_photo if profile.profile_photo else f'https://ui-avatars.com/api/?name={user.first_name or user.username}&background=46C2DE&color=fff',
             'role': 'doctor' if profile.is_doctor else 'patient',
             'doctor_id': profile.doctor.id if profile.doctor else None,
@@ -530,6 +557,8 @@ class ProfileView(viewsets.ViewSet):
         mobile = request.data.get('mobile')
         location = request.data.get('location')
         profile_photo = request.data.get('profile_photo')
+        age = request.data.get('age')
+        gender = request.data.get('gender')
         
         if name:
             user.first_name = name
@@ -545,6 +574,10 @@ class ProfileView(viewsets.ViewSet):
             profile.location = location
         if profile_photo:
             profile.profile_photo = profile_photo
+        if age:
+            profile.age = age
+        if gender:
+            profile.gender = gender
             
         profile.save()
             

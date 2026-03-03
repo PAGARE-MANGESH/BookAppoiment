@@ -17,6 +17,7 @@ class Doctor(models.Model):
     image_url = models.URLField(max_length=500, blank=True) # Using URL for demo ease
     availability_time = models.CharField(max_length=100, default="10 AM - 5 PM")
     location = models.CharField(max_length=200, default="Mumbai, India")
+    is_available = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
@@ -63,6 +64,8 @@ class UserProfile(models.Model):
     mobile = models.CharField(max_length=15, blank=True)
     location = models.CharField(max_length=255, blank=True)
     profile_photo = models.TextField(blank=True)  # Storing as base64 for demo simplicity
+    age = models.IntegerField(null=True, blank=True)
+    gender = models.CharField(max_length=10, blank=True)
     is_doctor = models.BooleanField(default=False)
     doctor = models.OneToOneField('Doctor', on_delete=models.SET_NULL, null=True, blank=True, related_name='user_profile')
 

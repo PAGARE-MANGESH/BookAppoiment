@@ -38,6 +38,7 @@ class DoctorSerializer(serializers.ModelSerializer):
 class AppointmentSerializer(serializers.ModelSerializer):
     doctor_name = serializers.ReadOnlyField(source='doctor.name')
     specialization_name = serializers.ReadOnlyField(source='doctor.specialization.name')
+    doctor_image_url = serializers.ReadOnlyField(source='doctor.image_url')
     slot_time = serializers.ReadOnlyField(source='slot.time')
     
     class Meta:
