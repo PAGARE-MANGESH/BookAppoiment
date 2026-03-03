@@ -6,6 +6,7 @@ from datetime import timedelta
 # This must be at the very top for Django to use it correctly
 try:
     import pymysql
+    pymysql.version_info = (2, 2, 1, 'final', 0)
     pymysql.install_as_MySQLdb()
 except ImportError:
     pass
